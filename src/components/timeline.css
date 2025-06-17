@@ -1,0 +1,15 @@
+.dot {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 10px;
+  height: 10px;
+  border-radius: 9999px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.dot:hover {
+  transform: translate(-50%, -50%) scale(3);
+  z-index: 10;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.4);
+}
