@@ -1,7 +1,5 @@
-// src/app/api/analyze/route.ts
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
-import { stripGutenbergBoilerplate } from "@/lib/cleanText";
 
 const openai = new OpenAI({
   apiKey: process.env.GROQ_API_KEY,
@@ -9,79 +7,100 @@ const openai = new OpenAI({
 });
 
 const MAX_RETRIES = 3;
-const CHUNK_SIZE = 2750;
+const CHUNK_SIZE = 4000;
 
 export async function POST(req: Request) {
   const { content } = await req.json();
+
   if (!content || content.length === 0) {
     return NextResponse.json({ error: "No content provided." }, { status: 400 });
   }
 
-  const cleanedText = stripGutenbergBoilerplate(content);
-
-  const totalLength = cleanedText.length;
+  const totalLength = content.length;
   const chunks: string[] = [];
   for (let i = 0; i < totalLength; i += CHUNK_SIZE) {
-    chunks.push(cleanedText.slice(i, i + CHUNK_SIZE));
+    chunks.push(content.slice(i, i + CHUNK_SIZE));
   }
 
-  let allCharacters = new Set<string>();
-  let allInteractions: any[] = [];
+  const allCharacters = new Set<string>();
+  const allInteractions: {
+    from: string;
+    to: string;
+    count: number;
+    quotes: string[];
+    sentiment: string;
+    positions: number[];
+  }[] = [];
 
   for (const [chunkIndex, chunk] of chunks.entries()) {
     const prompt = `
-You are a JSON-only response AI.
+From the following literary text chunk, extract:
 
-From the following text chunk, extract:
-1. A list of characters
-2. All interactions between characters
-3. For each interaction:
-   - who talks to whom
-   - how many times
-   - a few short quotes
-   - the sentiment (positive, negative, neutral)
-   - positions: an array of numbers between 0 and 1 (relative to this chunk)
+1. A list of proper named characters ONLY (people or personified entities). 
+   - DO NOT include vague terms like "he", "they", "someone", "God", "throne", "reader", or professions like "priest" or "king". 
+   - DO NOT include nationalities, places, or common nouns like "Romans", "Greeks", or "English".
+   - Include only **actual character names** like "Elizabeth", "Mr. Darcy", "Sherlock Holmes".
 
-Respond in strict JSON. No markdown or explanation.
+2. All meaningful dialogue interactions between named characters.
 
-Return format:
+For each interaction, include:
+- "from": speaking character (name only)
+- "to": receiving character (name only)
+- "count": number of interactions
+- "quotes": a few short representative quotes (if any)
+- "sentiment": "positive", "negative", or "neutral"
+- "positions": relative positions in the chunk, between 0 and 1
+
+Respond ONLY with a raw JSON object. Do NOT include markdown, explanations, prose, or headers.
+
+Example output format:
 {
-  "characters": [...],
+  "characters": ["Elizabeth", "Mr. Darcy"],
   "interactions": [
     {
-      "from": "",
-      "to": "",
-      "count": 0,
-      "quotes": [""],
-      "sentiment": "",
-      "positions": [0.23, 0.54]
+      "from": "Elizabeth",
+      "to": "Mr. Darcy",
+      "count": 3,
+      "quotes": ["You are the last man I could ever be prevailed upon to marry."],
+      "sentiment": "negative",
+      "positions": [0.12, 0.74]
     }
   ]
 }
 
 Text:
 """${chunk}"""
-`;
+`.trim();
 
     let parsed: any;
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
       try {
         console.log(`Chunk ${chunkIndex + 1}, attempt ${attempt}`);
+
         const res = await openai.chat.completions.create({
           model: "llama3-8b-8192",
           messages: [
-            { role: "system", content: "You are a helpful assistant that returns only valid JSON." },
-            { role: "user", content: prompt }
+            {
+              role: "system",
+              content:
+                "You are a JSON API. Always respond with ONLY a single valid JSON object. Never include explanations, prose, or markdown. Your output will be parsed with JSON.parse directly.",
+            },
+            {
+              role: "user",
+              content: prompt,
+            },
           ],
           temperature: 0.2,
         });
 
-        let raw = res.choices?.[0]?.message?.content || "";
-        const m = raw.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
-        const jsonText = m
-          ? m[1].replace(/[\u0000-\u001F]/g, "")
-          : raw.replace(/[\u0000-\u001F]/g, "");
-        parsed = JSON.parse(jsonText);
+        const raw = res.choices?.[0]?.message?.content || "";
+        const jsonText = raw.trim();
+
+        if (!jsonText.startsWith("{") || !jsonText.endsWith("}")) {
+          throw new Error("LLM response not in JSON object format");
+        }
+
+        parsed = JSON.parse(jsonText.replace(/[\u0000-\u001F]/g, ""));
         break;
       } catch (err: any) {
         console.warn(`  attempt ${attempt} failed: ${err.message}`);
@@ -105,6 +124,7 @@ Text:
         const absoluteIndex = baseOffset + p * chunkLength;
         return Math.min(1, Math.max(0, absoluteIndex / totalLength));
       });
+
       allInteractions.push({
         from: i.from,
         to: i.to,
