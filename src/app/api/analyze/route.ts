@@ -1,3 +1,4 @@
+// src/app/api/analyze/route.ts
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
 
@@ -15,12 +16,13 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "No content provided." }, { status: 400 });
   }
 
+  const totalLength = content.length;
   const chunks: string[] = [];
-  for (let i = 0; i < content.length; i += CHUNK_SIZE) {
+  for (let i = 0; i < totalLength; i += CHUNK_SIZE) {
     chunks.push(content.slice(i, i + CHUNK_SIZE));
   }
 
-  let allCharacters: Set<string> = new Set();
+  let allCharacters = new Set<string>();
   let allInteractions: any[] = [];
 
   for (const [chunkIndex, chunk] of chunks.entries()) {
@@ -35,9 +37,9 @@ From the following text chunk, extract:
    - how many times
    - a few short quotes
    - the sentiment (positive, negative, neutral)
-   - an approximate position in the text (0 to 1) for each quote in "positions": [0.23, 0.54]
+   - positions: an array of numbers between 0 and 1 (relative to this chunk)
 
-Respond in strict JSON. No markdown. No explanation.
+Respond in strict JSON. No markdown or explanation.
 
 Return format:
 {
@@ -49,7 +51,7 @@ Return format:
       "count": 0,
       "quotes": [""],
       "sentiment": "",
-      "positions": [0.0]
+      "positions": [0.23, 0.54]
     }
   ]
 }
@@ -58,64 +60,29 @@ Text:
 """${chunk}"""
 `;
 
-    let success = false;
+    let parsed: any;
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
       try {
         console.log(`Chunk ${chunkIndex + 1}, attempt ${attempt}`);
-
-        const response = await openai.chat.completions.create({
+        const res = await openai.chat.completions.create({
           model: "llama3-8b-8192",
           messages: [
-            {
-              role: "system",
-              content: "You are a helpful assistant that returns only strict valid JSON.",
-            },
-            { role: "user", content: prompt },
+            { role: "system", content: "You are a helpful assistant that returns only valid JSON." },
+            { role: "user", content: prompt }
           ],
           temperature: 0.2,
         });
 
-        let raw = response.choices?.[0]?.message?.content || "";
-
-        let jsonText = "";
-        const match = raw.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
-        if (match) {
-          jsonText = match[1].trim();
-        } else {
-          const first = raw.indexOf("{");
-          const last = raw.lastIndexOf("}");
-          if (first !== -1 && last !== -1 && last > first) {
-            jsonText = raw.slice(first, last + 1);
-          } else {
-            throw new Error("No JSON block found in response.");
-          }
-        }
-
-        // Clean control characters that break JSON
-        jsonText = jsonText.replace(/[\u0000-\u001F]/g, "");
-
-        const parsed = JSON.parse(jsonText);
-
-        for (const c of parsed.characters || []) allCharacters.add(c);
-
-        for (const i of parsed.interactions || []) {
-          allInteractions.push({
-            from: i.from,
-            to: i.to,
-            count: i.count,
-            quotes: Array.isArray(i.quotes) ? i.quotes.slice(0, 3) : [],
-            sentiment: i.sentiment || "neutral",
-            positions: Array.isArray(i.positions)
-              ? i.positions.map(Number).filter(p => p >= 0 && p <= 1)
-              : [],
-          });
-        }
-
-        console.log(` Success on chunk ${chunkIndex + 1}, attempt ${attempt}`);
-        success = true;
+        let raw = res.choices?.[0]?.message?.content || "";
+        // strip fencing
+        const m = raw.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+        const jsonText = m
+          ? m[1].replace(/[\u0000-\u001F]/g, "")
+          : raw.replace(/[\u0000-\u001F]/g, "");
+        parsed = JSON.parse(jsonText);
         break;
       } catch (err: any) {
-        console.warn(` Attempt ${attempt} failed: ${err.message}`);
+        console.warn(`  attempt ${attempt} failed: ${err.message}`);
         if (attempt === MAX_RETRIES) {
           return NextResponse.json(
             { error: "LLM parsing failed", message: err.message },
@@ -125,8 +92,27 @@ Text:
       }
     }
 
-    if (!success) {
-      console.error(`Failed to process chunk ${chunkIndex + 1}`);
+    // collect characters
+    for (const c of parsed.characters || []) {
+      allCharacters.add(c);
+    }
+
+    // remap each interaction’s positions to a 0–1 scale for entire book
+    for (const i of parsed.interactions || []) {
+      const chunkLength = chunk.length;
+      const baseOffset = chunkIndex * CHUNK_SIZE;
+      const absPositions = (i.positions || []).map((p: number) => {
+        const absoluteIndex = baseOffset + p * chunkLength;
+        return Math.min(1, Math.max(0, absoluteIndex / totalLength));
+      });
+      allInteractions.push({
+        from: i.from,
+        to: i.to,
+        count: i.count,
+        quotes: (i.quotes || []).slice(0, 3),
+        sentiment: i.sentiment || "neutral",
+        positions: absPositions,
+      });
     }
   }
 

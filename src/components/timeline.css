@@ -2,14 +2,35 @@
   position: absolute;
   top: 50%;
   transform: translate(-50%, -50%);
-  width: 10px;
-  height: 10px;
+  width: 12px;
+  height: 12px;
   border-radius: 9999px;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  border: 2px solid rgba(255, 255, 255, 0.8);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 .dot:hover {
-  transform: translate(-50%, -50%) scale(3);
-  z-index: 10;
-  box-shadow: 0 0 8px rgba(0, 0, 0, 0.4);
+  transform: translate(-50%, -50%) scale(2.5);
+  z-index: 20;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+  border: 3px solid rgba(255, 255, 255, 0.9);
+}
+
+/* Additional glow effects for different sentiments */
+.dot.bg-green-500:hover {
+  box-shadow: 0 0 20px rgba(34, 197, 94, 0.6), 0 8px 25px rgba(0, 0, 0, 0.3);
+}
+
+.dot.bg-red-500:hover {
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.6), 0 8px 25px rgba(0, 0, 0, 0.3);
+}
+
+.dot.bg-gray-400:hover {
+  box-shadow: 0 0 20px rgba(156, 163, 175, 0.6), 0 8px 25px rgba(0, 0, 0, 0.3);
+}
+
+.dot.bg-purple-500:hover {
+  box-shadow: 0 0 20px rgba(168, 85, 247, 0.6), 0 8px 25px rgba(0, 0, 0, 0.3);
 }
