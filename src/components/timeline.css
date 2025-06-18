@@ -18,7 +18,7 @@
   border: 3px solid rgba(255, 255, 255, 0.9);
 }
 
-/* Additional glow effects for different sentiments */
+
 .dot.bg-green-500:hover {
   box-shadow: 0 0 20px rgba(34, 197, 94, 0.6), 0 8px 25px rgba(0, 0, 0, 0.3);
 }

@@ -1,6 +1,7 @@
 // src/app/api/analyze/route.ts
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
+import { stripGutenbergBoilerplate } from "@/lib/cleanText";
 
 const openai = new OpenAI({
   apiKey: process.env.GROQ_API_KEY,
@@ -8,7 +9,7 @@ const openai = new OpenAI({
 });
 
 const MAX_RETRIES = 3;
-const CHUNK_SIZE = 4000;
+const CHUNK_SIZE = 2750;
 
 export async function POST(req: Request) {
   const { content } = await req.json();
@@ -16,10 +17,12 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "No content provided." }, { status: 400 });
   }
 
-  const totalLength = content.length;
+  const cleanedText = stripGutenbergBoilerplate(content);
+
+  const totalLength = cleanedText.length;
   const chunks: string[] = [];
   for (let i = 0; i < totalLength; i += CHUNK_SIZE) {
-    chunks.push(content.slice(i, i + CHUNK_SIZE));
+    chunks.push(cleanedText.slice(i, i + CHUNK_SIZE));
   }
 
   let allCharacters = new Set<string>();
@@ -74,7 +77,6 @@ Text:
         });
 
         let raw = res.choices?.[0]?.message?.content || "";
-        // strip fencing
         const m = raw.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
         const jsonText = m
           ? m[1].replace(/[\u0000-\u001F]/g, "")
@@ -92,12 +94,10 @@ Text:
       }
     }
 
-    // collect characters
     for (const c of parsed.characters || []) {
       allCharacters.add(c);
     }
 
-    // remap each interaction’s positions to a 0–1 scale for entire book
     for (const i of parsed.interactions || []) {
       const chunkLength = chunk.length;
       const baseOffset = chunkIndex * CHUNK_SIZE;

@@ -5,12 +5,13 @@ import { Eye, Download, Share2, Sparkles } from "lucide-react"
 import BookInput from "@/components/BookInput"
 import Timeline from "@/components/Timeline"
 import CharacterSummary from "@/components/CharacterSummary"
+import type { AnalysisData } from "@/types/interactions"
 
 export default function Home() {
   const [bookText, setBookText] = useState("")
-  const [analysisData, setAnalysisData] = useState<any | null>(null)
+  const [analysisData, setAnalysisData] = useState<AnalysisData | null>(null)
 
-  const handleAnalysis = (data: any, rawText: string) => {
+  const handleAnalysis = (data: AnalysisData, rawText: string) => {
     setBookText(rawText)
     setAnalysisData(data)
   }
@@ -29,14 +30,14 @@ export default function Home() {
               </div>
               <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Text Analysis Preview</h2>
             </div>
-            
+
             <div className="bg-white dark:bg-gray-900 rounded-2xl p-8 border border-gray-200 dark:border-gray-700 shadow-xl">
               <div className="prose prose-gray dark:prose-invert max-w-none">
                 <p className="text-gray-700 dark:text-gray-300 leading-relaxed text-lg whitespace-pre-wrap">
                   {bookText.slice(0, 500)}...
                 </p>
               </div>
-              
+
               <div className="mt-6 flex items-center justify-between text-sm text-gray-500 dark:text-gray-400">
                 <span>Showing first 500 characters</span>
                 <div className="flex gap-3">
@@ -61,7 +62,6 @@ export default function Home() {
           </>
         )}
 
-        {/* Footer */}
         <footer className="mt-24 text-center">
           <div className="max-w-2xl mx-auto">
             <div className="flex items-center justify-center gap-2 text-gray-500 dark:text-gray-400 mb-4">

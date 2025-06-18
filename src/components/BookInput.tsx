@@ -1,70 +1,71 @@
-"use client";
+"use client"
 
-import { useState } from "react";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Search, BookOpen, Users, TrendingUp, Sparkles, Clock, Zap } from "lucide-react";
+import { useState } from "react"
+import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
+import { Card } from "@/components/ui/card"
+import { Search, BookOpen, Users, TrendingUp, Sparkles, Clock, Zap } from "lucide-react"
+import type { AnalysisData } from "@/types/interactions"
 
 export default function BookInput({
   onAnalysisCompleted,
 }: {
-  onAnalysisCompleted: (data: any, rawText: string) => void;
+  onAnalysisCompleted: (data: AnalysisData, rawText: string) => void
 }) {
-  const [bookId, setBookId] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [inputWarning, setInputWarning] = useState("");
+  const [bookId, setBookId] = useState("")
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState("")
+  const [inputWarning, setInputWarning] = useState("")
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value;
+    const val = e.target.value
     if (/^\d*$/.test(val)) {
-      setBookId(val);
+      setBookId(val)
       if (val === "" || /^[1-9]\d*$/.test(val)) {
-        setInputWarning("");
+        setInputWarning("")
       } else {
-        setInputWarning("Book ID must start with digits 1–9 (no leading 0s).");
+        setInputWarning("Book ID must start with digits 1–9 (no leading 0s).")
       }
     } else {
-      setInputWarning("Only numeric characters (0–9) are allowed.");
+      setInputWarning("Only numeric characters (0–9) are allowed.")
     }
-  };
+  }
 
   const fetchAndAnalyze = async () => {
-    setError("");
+    setError("")
 
     if (!/^[1-9]\d*$/.test(bookId)) {
-      setError("Book ID must contain digits 1–9 only. No letters, symbols, or leading 0s.");
-      return;
+      setError("Book ID must contain digits 1–9 only. No letters, symbols, or leading 0s.")
+      return
     }
 
-    setLoading(true);
+    setLoading(true)
     try {
       const fetchRes = await fetch("/api/fetch-book", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ bookId }),
-      });
+      })
 
-      const fetchData = await fetchRes.json();
-      if (!fetchRes.ok) throw new Error(fetchData.error || "Fetch failed");
+      const fetchData = await fetchRes.json()
+      if (!fetchRes.ok) throw new Error(fetchData.error || "Fetch failed")
 
       const analyzeRes = await fetch("/api/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ content: fetchData.content }),
-      });
+      })
 
-      const analysisData = await analyzeRes.json();
-      if (!analyzeRes.ok) throw new Error(analysisData.error || "Analysis failed");
+      const analysisData = await analyzeRes.json()
+      if (!analyzeRes.ok) throw new Error(analysisData.error || "Analysis failed")
 
-      onAnalysisCompleted(analysisData, fetchData.content);
+      onAnalysisCompleted(analysisData, fetchData.content)
     } catch (err: any) {
-      setError(err.message || "Something went wrong.");
+      setError(err.message || "Something went wrong.")
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   return (
     <div className="relative">
@@ -93,7 +94,7 @@ export default function BookInput({
               </div>
               <h2 className="text-2xl font-bold">Project Gutenberg Book ID</h2>
             </div>
-            
+
             <div className="space-y-4">
               <div className="relative">
                 <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -105,7 +106,7 @@ export default function BookInput({
                   className="pl-12 pr-4 py-4 text-lg rounded-xl bg-gray-50 dark:bg-gray-800 border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 />
               </div>
-              
+
               <Button
                 onClick={fetchAndAnalyze}
                 disabled={loading || !bookId || !!inputWarning}
@@ -130,7 +131,7 @@ export default function BookInput({
                 <p className="text-yellow-700 dark:text-yellow-300 text-sm">{inputWarning}</p>
               </div>
             )}
-            
+
             {error && (
               <div className="mt-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-lg">
                 <p className="text-red-700 dark:text-red-300 text-sm">{error}</p>
@@ -157,5 +158,5 @@ export default function BookInput({
         ))}
       </div>
     </div>
-  );
+  )
 }
