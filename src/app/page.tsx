@@ -1,17 +1,18 @@
-"use client";
+"use client"
 
-import { useState } from "react";
-import BookInput from "@/components/BookInput";
-import Timeline from "@/components/Timeline";
+import { useState } from "react"
+import BookInput from "@/components/BookInput"
+import Timeline from "@/components/Timeline"
+import CharacterSummary from "@/components/CharacterSummary"
 
 export default function Home() {
-  const [bookText, setBookText] = useState("");
-  const [analysisData, setAnalysisData] = useState<any | null>(null);
+  const [bookText, setBookText] = useState("")
+  const [analysisData, setAnalysisData] = useState<any | null>(null)
 
   const handleAnalysis = (data: any, rawText: string) => {
-    setBookText(rawText);
-    setAnalysisData(data);
-  };
+    setBookText(rawText)
+    setAnalysisData(data)
+  }
 
   return (
     <main className="p-6 min-h-screen bg-background text-foreground">
@@ -26,7 +27,12 @@ export default function Home() {
         </div>
       )}
 
-      {analysisData && <Timeline interactions={analysisData.interactions} />}
+      {analysisData && (
+        <>
+          <Timeline interactions={analysisData.interactions} />
+          <CharacterSummary interactions={analysisData.interactions} />
+        </>
+      )}
     </main>
-  );
+  )
 }
