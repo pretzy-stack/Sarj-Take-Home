@@ -10,7 +10,7 @@ import type { AnalysisData } from "@/types/interactions"
 export default function BookInput({
   onAnalysisCompleted,
 }: {
-  onAnalysisCompleted: (data: AnalysisData, rawText: string) => void
+  onAnalysisCompleted: (data: AnalysisData, rawText: string, title: string) => void;
 }) {
   const [bookId, setBookId] = useState("")
   const [loading, setLoading] = useState(false)
@@ -59,7 +59,7 @@ export default function BookInput({
       const analysisData = await analyzeRes.json()
       if (!analyzeRes.ok) throw new Error(analysisData.error || "Analysis failed")
 
-      onAnalysisCompleted(analysisData, fetchData.content)
+      onAnalysisCompleted(analysisData, fetchData.content, fetchData.title)
     } catch (err: any) {
       setError(err.message || "Something went wrong.")
     } finally {
@@ -69,7 +69,6 @@ export default function BookInput({
 
   return (
     <div className="relative">
-      {/* Hero Section */}
       <div className="text-center mb-12">
         <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-full mb-6">
           <Sparkles className="w-4 h-4 text-purple-600" />
@@ -83,7 +82,6 @@ export default function BookInput({
         </p>
       </div>
 
-      {/* Input Section */}
       <div className="max-w-2xl mx-auto mb-8">
         <div className="relative group">
           <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-blue-600 rounded-2xl blur-xl opacity-20 group-hover:opacity-30 transition-opacity"></div>
@@ -141,7 +139,6 @@ export default function BookInput({
         </div>
       </div>
 
-      {/* Features Preview */}
       <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
         {[
           { icon: Users, title: "Character Analysis", desc: "Deep dive into character relationships and dynamics" },

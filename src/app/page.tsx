@@ -9,10 +9,12 @@ import type { AnalysisData } from "@/types/interactions"
 
 export default function Home() {
   const [bookText, setBookText] = useState("")
+  const [bookTitle, setBookTitle] = useState("")
   const [analysisData, setAnalysisData] = useState<AnalysisData | null>(null)
 
-  const handleAnalysis = (data: AnalysisData, rawText: string) => {
+  const handleAnalysis = (data: AnalysisData, rawText: string, title: string) => {
     setBookText(rawText)
+    setBookTitle(title)
     setAnalysisData(data)
   }
 
@@ -28,7 +30,9 @@ export default function Home() {
                 <Eye className="w-4 h-4 text-indigo-600" />
                 <span className="text-sm font-medium text-indigo-700 dark:text-indigo-300">Book Preview</span>
               </div>
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Text Analysis Preview</h2>
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                Text Analysis Preview: <span className="italic">{bookTitle}</span>
+              </h2>
             </div>
 
             <div className="bg-white dark:bg-gray-900 rounded-2xl p-8 border border-gray-200 dark:border-gray-700 shadow-xl">

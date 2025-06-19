@@ -34,36 +34,31 @@ export async function POST(req: Request) {
 
   for (const [chunkIndex, chunk] of chunks.entries()) {
     const prompt = `
-From the following literary text chunk, extract:
+Extract the following in valid JSON ONLY. Do NOT include any markdown, prose, or explanation.
 
-1. A list of proper named characters ONLY (people or personified entities). 
-   - DO NOT include vague terms like "he", "they", "someone", "God", "throne", "reader", or professions like "priest" or "king". 
-   - DO NOT include nationalities, places, or common nouns like "Romans", "Greeks", or "English".
-   - Include only **actual character names** like "Elizabeth", "Mr. Darcy", "Sherlock Holmes".
+From the following text chunk, extract:
+1. A list of named characters or commonly used named titles (Mr. Smith, Lady Catherine, Dr. Watson, etc.). Include recurring pronoun-titled characters (e.g. "The Judge", "The General") if they clearly refer to specific individuals. Avoid generic terms like "man", "someone", "people", etc.
+2. All meaningful interactions between these characters
+3. For each interaction:
+   - from (who initiates or dominates the interaction)
+   - to (who is receiving or participating)
+   - count (number of mentions or interactions)
+   - quotes (short supporting excerpts)
+   - sentiment ("positive", "neutral", or "negative")
+   - positions: array of floats between 0–1 indicating where this happened in the chunk
 
-2. All meaningful dialogue interactions between named characters.
+Respond with raw JSON ONLY in this format:
 
-For each interaction, include:
-- "from": speaking character (name only)
-- "to": receiving character (name only)
-- "count": number of interactions
-- "quotes": a few short representative quotes (if any)
-- "sentiment": "positive", "negative", or "neutral"
-- "positions": relative positions in the chunk, between 0 and 1
-
-Respond ONLY with a raw JSON object. Do NOT include markdown, explanations, prose, or headers.
-
-Example output format:
 {
-  "characters": ["Elizabeth", "Mr. Darcy"],
+  "characters": ["Mr. Darcy", "Elizabeth Bennet"],
   "interactions": [
     {
-      "from": "Elizabeth",
+      "from": "Elizabeth Bennet",
       "to": "Mr. Darcy",
       "count": 3,
-      "quotes": ["You are the last man I could ever be prevailed upon to marry."],
+      "quotes": ["I could easily forgive his pride...", "He was the last man..."],
       "sentiment": "negative",
-      "positions": [0.12, 0.74]
+      "positions": [0.23, 0.54]
     }
   ]
 }

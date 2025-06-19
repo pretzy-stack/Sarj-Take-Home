@@ -1,46 +1,43 @@
 // src/components/Timeline.tsx
-"use client";
 
 import React from "react";
 import { Clock } from "lucide-react";
+import type { Interaction } from "@/types/interactions";
 import "./timeline.css";
 
-type Interaction = {
-  from: string;
-  to: string;
-  count: number;
-  quotes: string[];
-  sentiment: string;
-  positions?: number[];
-};
+export default function Timeline({ interactions }: { interactions: Interaction[] }) {
+  const sentimentColor = (s: string) => {
+    switch (s.toLowerCase()) {
+      case "positive": return "bg-green-500 shadow-green-500/50";
+      case "negative": return "bg-red-500 shadow-red-500/50";
+      case "neutral": return "bg-gray-400 shadow-gray-400/50";
+      default: return "bg-purple-500 shadow-purple-500/50";
+    }
+  };
 
-type TimelineProps = {
-  interactions: Interaction[];
-};
+  const characters = Array.from(new Set(
+    interactions
+      .flatMap(i => [i.from, i.to])
+      .filter(c => typeof c === "string" && c.trim() !== "" && c.toLowerCase() !== "null")
+  ));
 
-const sentimentColor = (sentiment: any) => {
-  const s = String(sentiment).toLowerCase();
-  switch (s) {
-    case "positive":
-      return "bg-green-500 shadow-green-500/50";
-    case "negative":
-      return "bg-red-500 shadow-red-500/50";
-    case "neutral":
-      return "bg-gray-400 shadow-gray-400/50";
-    default:
-      return "bg-purple-500 shadow-purple-500/50";
+  if (characters.length === 0) {
+    return (
+      <div className="mt-16 text-center">
+        <div className="inline-flex items-center gap-2 px-4 py-2 bg-yellow-100 dark:bg-yellow-900/30 rounded-full mb-4">
+          <Clock className="w-4 h-4 text-yellow-600" />
+          <span className="text-sm font-medium text-yellow-700 dark:text-yellow-300">No Character Interactions Found</span>
+        </div>
+        <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-200">
+          Try a different book like <span className="font-bold">ID 1112</span> or <span className="font-bold">1888</span>.
+        </h2>
+      </div>
+    );
   }
-};
 
-export default function Timeline({ interactions }: TimelineProps) {
-  const characters = Array.from(
-    new Set(interactions.flatMap(i => [i.from, i.to]))
-  );
   const grouped: Record<string, Interaction[]> = {};
   characters.forEach(char => {
-    grouped[char] = interactions.filter(
-      i => i.from === char || i.to === char
-    );
+    grouped[char] = interactions.filter(i => i.from === char || i.to === char);
   });
 
   const allPositions = interactions.flatMap(i => i.positions || []);
@@ -63,7 +60,7 @@ export default function Timeline({ interactions }: TimelineProps) {
             <div key={char}>
               <div className="flex items-center gap-4 mb-4">
                 <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center">
-                  <span className="text-white font-bold text-lg">{char.charAt(0)}</span>
+                  <span className="text-white font-bold text-lg">{char?.charAt(0) || "?"}</span>
                 </div>
                 <div>
                   <h3 className="font-bold text-lg text-gray-900 dark:text-white">{char}</h3>
@@ -78,8 +75,9 @@ export default function Timeline({ interactions }: TimelineProps) {
 
                 {grouped[char].flatMap((interaction, idx) =>
                   (interaction.positions || []).map((pos, pIdx) => {
-                    const percentage = Math.round(pos * 100);
-                    const left = `${(pos / maxPos) * 90 + 5}%`;
+                    const clamped = Math.min(1, Math.max(0, pos));
+                    const percentage = Math.round(clamped * 100);
+                    const left = `${clamped * 90 + 5}%`;
                     const quote = interaction.quotes[pIdx] || interaction.quotes[0] || "No quote";
                     const sentiment = String(interaction.sentiment).toUpperCase();
 
